@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30309.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLcheck", "SQLcheck\SQLcheck.csproj", "{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Debug|Any CPU.Build.0 = Release|Any CPU
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Debug|x64.ActiveCfg = Release|x64
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Debug|x64.Build.0 = Release|x64
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Release|x64.ActiveCfg = Release|x64
+		{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6EE5CB85-69BC-48B4-AD88-040600866A11}
+	EndGlobalSection
+EndGlobal
