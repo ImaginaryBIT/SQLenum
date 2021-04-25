@@ -1,12 +1,12 @@
-# A C sharp tool for SQL Enumeration 
+# SQL Linked Server Enumeration 
 
 Usage: 
 
-SQLcheck.exe [target1] [target2] [options]
+SQLenum.exe [target1] [target2] [options]
 
-Local enumeration: SQLcheck.exe local
-Enumeration: SQLcheck.exe SQL11
-Linked server enumeration: SQLcheck.exe SQL11 SQL33
+Local enumeration: SQLenum.exe local
+Enumeration: SQLenum.exe SQL11
+Linked server enumeration: SQLenum.exe SQL11 SQL33
 
 Options:
 --localImpersonation=[username] : Local impersonation, default value is sa
