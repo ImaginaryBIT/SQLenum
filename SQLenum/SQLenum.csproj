@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>SQLcheck</RootNamespace>
-    <AssemblyName>SQLcheck</AssemblyName>
+    <RootNamespace>sqlenum</RootNamespace>
+    <AssemblyName>sqlenum</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

@@ -1,0 +1,6 @@
+C:\Users\User\source\repos\SQLcheck\SQLcheck\obj\x64\Release\SQLcheck.csprojAssemblyReference.cache
+C:\Users\User\source\repos\SQLcheck\SQLcheck\obj\x64\Release\SQLcheck.csproj.CoreCompileInputs.cache
+C:\Users\User\source\repos\SQLcheck\SQLcheck\bin\x64\Release\sqlenum.exe
+C:\Users\User\source\repos\SQLcheck\SQLcheck\bin\x64\Release\sqlenum.pdb
+C:\Users\User\source\repos\SQLcheck\SQLcheck\obj\x64\Release\sqlenum.exe
+C:\Users\User\source\repos\SQLcheck\SQLcheck\obj\x64\Release\sqlenum.pdb

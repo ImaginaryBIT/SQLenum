@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLcheck", "SQLcheck\SQLcheck.csproj", "{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLenum", "SQLenum\SQLenum.csproj", "{A67A5B30-4262-4FD9-8115-6D1C5D0600DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
