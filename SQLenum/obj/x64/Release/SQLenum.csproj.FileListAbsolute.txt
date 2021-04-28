@@ -1,0 +1,6 @@
+C:\Users\User\source\repos\SQLenum\SQLenum\bin\x64\Release\sqlenum.exe
+C:\Users\User\source\repos\SQLenum\SQLenum\bin\x64\Release\sqlenum.pdb
+C:\Users\User\source\repos\SQLenum\SQLenum\obj\x64\Release\SQLenum.csprojAssemblyReference.cache
+C:\Users\User\source\repos\SQLenum\SQLenum\obj\x64\Release\SQLenum.csproj.CoreCompileInputs.cache
+C:\Users\User\source\repos\SQLenum\SQLenum\obj\x64\Release\sqlenum.exe
+C:\Users\User\source\repos\SQLenum\SQLenum\obj\x64\Release\sqlenum.pdb
