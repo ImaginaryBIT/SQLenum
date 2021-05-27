@@ -11,5 +11,6 @@ Options:
 
 - --localImpersonation=[username] : Local impersonation, default value is sa
 - --remoteImpersonation=[username] : Remote impersonation, default value is sa
-- --execute=[commands] : Remote command execution
+- --localExecute=[commands] : OS command execution on local server;
+- --remoteExecute=[commands] : OS command execution on remote server;
 - --debug : Enable debug mode
